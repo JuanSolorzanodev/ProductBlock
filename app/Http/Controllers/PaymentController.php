@@ -3,11 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
+use App\Services\StripeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class PaymentController extends Controller
 {
+    protected $stripeService;
+
+    public function __construct(StripeService $stripeService)
+    {
+        $this->stripeService = $stripeService;
+    }
+
     public function index()
     {
         return response()->json(Payment::all(), 200);
@@ -64,5 +72,18 @@ class PaymentController extends Controller
         $payment = Payment::findOrFail($id);
         $payment->delete();
         return response()->json(['message' => 'Payment deleted successfully'], 204);
+    }
+
+    public function createPaymentIntent(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required|numeric|min:0.50',
+        ]);
+
+        $paymentIntent = $this->stripeService->createPaymentIntent($request->amount);
+
+        return response()->json([
+            'clientSecret' => $paymentIntent->client_secret,
+        ]);
     }
 }

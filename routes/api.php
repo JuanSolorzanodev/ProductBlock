@@ -21,3 +21,4 @@ Route::apiResource('orders', OrderController::class);
 Route::apiResource('suppliers', SupplierController::class);
 Route::apiResource('carts', CartController::class);
 Route::apiResource('payments', PaymentController::class);
+Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent']);
