@@ -9,7 +9,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return response()->json(Product::all(), 200);
+        return response()->json(Product::with('category')->get(), 200);
     }
 
     public function store(Request $request)

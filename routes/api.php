@@ -20,5 +20,8 @@ Route::apiResource('customers', CustomerController::class);
 Route::apiResource('orders', OrderController::class);
 Route::apiResource('suppliers', SupplierController::class);
 Route::apiResource('carts', CartController::class);
+Route::get('/cart_items/{customerId}', [CartController::class, 'getCartItems']);
 Route::apiResource('payments', PaymentController::class);
 Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent']);
+Route::delete('/cart_items/{cartItemId}', [CartController::class, 'removeFromCart']);
+Route::put('/cart_items/{cartItemId}', [CartController::class, 'updateCartItem']);
