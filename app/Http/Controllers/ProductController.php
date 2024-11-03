@@ -119,31 +119,63 @@ class ProductController extends Controller
     }
     public function getProductsWithQuantities(Request $request)
     {
-        // Validar que la entrada tenga el formato esperado
+        // Validar que el input sea un array
         $request->validate([
             'products' => 'required|array',
             'products.*.id' => 'required|integer|exists:products,id',
             'products.*.quantity' => 'required|integer|min:1',
         ]);
 
-        // Obtener los IDs de los productos
+        // Obtener los productos junto con sus relaciones
         $productIds = collect($request->input('products'))->pluck('id')->toArray();
-
-        // Obtener los productos con sus especificaciones e imágenes
-        $products = Product::with(['specifications', 'images'])
+        $products = Product::with(['category', 'specifications', 'images'])
             ->whereIn('id', $productIds)
             ->get();
 
-        // Añadir la cantidad a cada producto
+        // Mapear los productos para añadir la cantidad
         $productsWithQuantities = $products->map(function ($product) use ($request) {
-            $productDetails = $request->input('products');
-            $quantity = collect($productDetails)->firstWhere('id', $product->id)['quantity'];
-            $product->quantity = $quantity; // Añadir la cantidad como atributo
-            return $product;
+            $quantity = collect($request->input('products'))->firstWhere('id', $product->id)['quantity'];
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'price' => $product->price,
+                'stock' => $product->stock,
+                'SKU' => $product->SKU,
+                'iva' => $product->iva,
+                'category' => $product->category,
+                'specifications' => $product->specifications,
+                'images' => $product->images,
+                'quantity' => $quantity, // Añadir la cantidad
+            ];
         });
 
         return response()->json($productsWithQuantities);
     }
-    
+    public function getAllProducts()
+        {
+            // Obtener todos los productos junto con sus relaciones
+            $products = Product::with(['category', 'specifications', 'images'])->get();
+
+            // Mapear los productos para añadir la cantidad (si necesitas un valor predeterminado)
+            $productsWithQuantities = $products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'description' => $product->description,
+                    'price' => $product->price,
+                    'stock' => $product->stock,
+                    'SKU' => $product->SKU,
+                    'iva' => $product->iva,
+                    'category' => $product->category,
+                    'specifications' => $product->specifications,
+                    'images' => $product->images,
+                    'quantity' => 0, // Puedes establecer un valor predeterminado si es necesario
+                ];
+            });
+
+            return response()->json($productsWithQuantities);
+        }
+
 
 }

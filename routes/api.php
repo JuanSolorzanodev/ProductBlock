@@ -14,7 +14,8 @@ Route::get('/user', function (Request $request) {
 
 // Rutas para las API de recursos
 Route::apiResource('categories', CategoryController::class);
-Route::apiResource('products', ProductController::class);
+// Route::apiResource('products', ProductController::class);
+Route::get('/products', [ProductController::class, 'getAllProducts']);
 Route::apiResource('customers', CustomerController::class);
 Route::apiResource('orders', OrderController::class);
 Route::apiResource('suppliers', SupplierController::class);
