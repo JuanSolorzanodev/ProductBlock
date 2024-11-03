@@ -152,13 +152,47 @@ class ProductController extends Controller
 
         return response()->json($productsWithQuantities);
     }
-    public function getAllProducts()
+    public function getProductsCart(Request $request)
+    {
+        // Validar que el input sea un array
+        $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|integer|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        // Obtener los productos junto con sus relaciones
+        $productIds = collect($request->input('products'))->pluck('id')->toArray();
+        $products = Product::with(['category', 'images'])
+            ->whereIn('id', $productIds)
+            ->get();
+        // Obtener la imagen con top igual a 1
+        $topImage = $product->images->where('top', 1)->first();
+        // Mapear los productos para añadir la cantidad
+        $productsCart = $products->map(function ($product) use ($request) {
+            $quantity = collect($request->input('products'))->firstWhere('id', $product->id)['quantity'];
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'description' => $product->description,
+                'price' => $product->price,
+                'stock' => $product->stock,
+                'SKU' => $product->SKU,
+                'iva' => $product->iva,
+                'category' => $product->category,
+                'image_path' => $topImage ? $topImage->image_path : null,
+                'quantity' => $quantity,
+            ];
+        });
+        return response()->json($productsCart);
+    }
+    public function getAllProductsDetails()
         {
             // Obtener todos los productos junto con sus relaciones
             $products = Product::with(['category', 'specifications', 'images'])->get();
 
             // Mapear los productos para añadir la cantidad (si necesitas un valor predeterminado)
-            $productsWithQuantities = $products->map(function ($product) {
+            $productsAllDetails = $products->map(function ($product) {
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
@@ -170,11 +204,34 @@ class ProductController extends Controller
                     'category' => $product->category,
                     'specifications' => $product->specifications,
                     'images' => $product->images,
-                    'quantity' => 0, // Puedes establecer un valor predeterminado si es necesario
+                    /* 'quantity' => 0, */ // Puedes establecer un valor predeterminado si es necesario
                 ];
             });
 
-            return response()->json($productsWithQuantities);
+            return response()->json($productsAllDetails);
+        }
+    public function getAllProducts()
+    {
+            // Obtener todos los productos junto con sus relaciones
+            $products = Product::with(['category', 'images'])->get();
+
+            // Mapear los productos para añadir la cantidad (si necesitas un valor predeterminado)
+            $productsAll = $products->map(function ($product) {
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'description' => $product->description,
+                    'price' => $product->price,
+                    'stock' => $product->stock,
+                    'SKU' => $product->SKU,
+                    'iva' => $product->iva,
+                    'category' => $product->category,
+                    'images' => $product->images,
+                    /* 'quantity' => 0, */ // Puedes establecer un valor predeterminado si es necesario
+                ];
+            });
+
+            return response()->json($productsAll);
         }
 
 

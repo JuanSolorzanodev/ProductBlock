@@ -15,7 +15,7 @@ class ProductSeeder extends Seeder
                 'name' => 'Cemento Portland',
                 'description' => 'Cemento de alta resistencia para todo tipo de construcción.',
                 'price' => 120.00,
-                'stock' => 50,
+                'stock' => 0,
                 'SKU' => 'CP1001',
                 'iva' => true,
                 'category_id' => 1,
