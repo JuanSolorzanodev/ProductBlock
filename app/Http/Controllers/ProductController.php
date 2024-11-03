@@ -9,6 +9,20 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+    public function index(Request $request)
+    {
+        $query = $request->input('name');
+
+        // Obtiene todos los productos con sus imágenes, filtrando por nombre si se proporciona
+        $products = Product::with('images')
+            ->when($query, function($queryBuilder) use ($query) {
+                return $queryBuilder->where('name', 'like', '%' . $query . '%');
+            })
+            ->get();
+    
+        return response()->json(['data' => $products], 200);
+    }
+
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -103,4 +117,33 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Product deleted successfully'], 200);
     }
+    public function getProductsWithQuantities(Request $request)
+    {
+        // Validar que la entrada tenga el formato esperado
+        $request->validate([
+            'products' => 'required|array',
+            'products.*.id' => 'required|integer|exists:products,id',
+            'products.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        // Obtener los IDs de los productos
+        $productIds = collect($request->input('products'))->pluck('id')->toArray();
+
+        // Obtener los productos con sus especificaciones e imágenes
+        $products = Product::with(['specifications', 'images'])
+            ->whereIn('id', $productIds)
+            ->get();
+
+        // Añadir la cantidad a cada producto
+        $productsWithQuantities = $products->map(function ($product) use ($request) {
+            $productDetails = $request->input('products');
+            $quantity = collect($productDetails)->firstWhere('id', $product->id)['quantity'];
+            $product->quantity = $quantity; // Añadir la cantidad como atributo
+            return $product;
+        });
+
+        return response()->json($productsWithQuantities);
+    }
+    
+
 }
