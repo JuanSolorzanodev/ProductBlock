@@ -20,7 +20,9 @@ Route::apiResource('orders', OrderController::class);
 Route::apiResource('suppliers', SupplierController::class);
 Route::apiResource('carts', CartController::class);
 Route::apiResource('payments', PaymentController::class);
-Route::post('/products/getByIds', [ProductController::class, 'getProductsWithQuantities']);
+/* Route::post('/products/getByIds', [ProductController::class, 'getProductsWithQuantities']); */
+Route::post('/products/getByIds', [ProductController::class, 'getProductsCart']);
+Route::get('/products/in-stock', [ProductController::class, 'getInStockProducts']);
 
 // Rutas adicionales para el carrito
 Route::get('/cart_items/{customerId}', [CartController::class, 'getCartItems']); // Obtener items del carrito de un cliente

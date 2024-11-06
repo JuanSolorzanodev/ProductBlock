@@ -153,39 +153,47 @@ class ProductController extends Controller
         return response()->json($productsWithQuantities);
     }
     public function getProductsCart(Request $request)
-    {
-        // Validar que el input sea un array
-        $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|integer|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-        ]);
+{
+    // Validar que el input sea un array
+    $request->validate([
+        'products' => 'required|array',
+        'products.*.id' => 'required|integer|exists:products,id',
+        'products.*.quantity' => 'required|integer|min:1',
+    ]);
 
-        // Obtener los productos junto con sus relaciones
-        $productIds = collect($request->input('products'))->pluck('id')->toArray();
-        $products = Product::with(['category', 'images'])
-            ->whereIn('id', $productIds)
-            ->get();
-        // Obtener la imagen con top igual a 1
-        $topImage = $product->images->where('top', 1)->first();
-        // Mapear los productos para añadir la cantidad
-        $productsCart = $products->map(function ($product) use ($request) {
-            $quantity = collect($request->input('products'))->firstWhere('id', $product->id)['quantity'];
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'description' => $product->description,
-                'price' => $product->price,
-                'stock' => $product->stock,
-                'SKU' => $product->SKU,
-                'iva' => $product->iva,
-                'category' => $product->category,
-                'image_path' => $topImage ? $topImage->image_path : null,
-                'quantity' => $quantity,
-            ];
-        });
-        return response()->json($productsCart);
-    }
+    // Obtener los productos que están en stock (stock >= 1) junto con sus relaciones
+    $productIds = collect($request->input('products'))->pluck('id')->toArray();
+    $products = Product::with(['category', 'images' => function ($query) {
+            $query->where('top', 1); // Solo obtener la imagen top 1
+        }])
+        ->whereIn('id', $productIds)
+        ->where('stock', '>=', 1) // Solo productos en stock
+        ->get();
+
+    // Mapear los productos para añadir la cantidad
+    $productsWithQuantities = $products->map(function ($product) use ($request) {
+        $quantity = collect($request->input('products'))->firstWhere('id', $product->id)['quantity'];
+
+        // Obtener solo la URL de la imagen top 1
+        $topImage = $product->images->first(); // Solo un elemento si existe
+
+        return [
+            'id' => $product->id,
+            'name' => $product->name,
+            'description' => $product->description,
+            'price' => $product->price,
+            'stock' => $product->stock,
+            'SKU' => $product->SKU,
+            'iva' => $product->iva,
+            'category' => $product->category,
+            'image_url' => $topImage ? $topImage->image_path : null, // URL de la imagen o null si no existe
+            'quantity' => $quantity, // Añadir la cantidad
+        ];
+    });
+
+    return response()->json($productsWithQuantities);
+}
+
     public function getAllProductsDetails()
         {
             // Obtener todos los productos junto con sus relaciones
@@ -233,6 +241,16 @@ class ProductController extends Controller
 
             return response()->json($productsAll);
         }
+
+    public function getInStockProducts()
+    {
+        // Obtener productos donde el stock es mayor a 0
+        $products = Product::where('stock', '>', 0)
+            ->get(['id', 'stock']); // Selecciona solo los atributos id y stock
+
+        return response()->json($products);
+    }
+        
 
 
 }
