@@ -250,7 +250,20 @@ class ProductController extends Controller
 
         return response()->json($products);
     }
-        
+    public function getStockById($id)
+{
+    // Buscar el producto por ID
+    $product = Product::find($id);
+
+    // Verificar si el producto existe
+    if ($product) {
+        // Si el producto existe, retornar el stock
+        return response()->json(['stock' => $product->stock]);
+    } else {
+        // Si el producto no existe, retornar 0
+        return response()->json(['stock' => 0]);
+    }
+}
 
 
 }
