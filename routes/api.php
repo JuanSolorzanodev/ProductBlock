@@ -25,6 +25,15 @@ Route::post('/products/getByIds', [ProductController::class, 'getProductsCart'])
 Route::get('/products/in-stock', [ProductController::class, 'getInStockProducts']);
 Route::get('/products/{id}/stock', [ProductController::class, 'getStockById']);
 
+Route::post('/products', [ProductController::class, 'store']);
+
+Route::put('/products/{id}', [ProductController::class, 'update']);
+
+Route::post('/products/{id}/images', [ProductController::class, 'updateImages']);
+
+Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+
 // Rutas adicionales para el carrito
 Route::get('/cart_items/{customerId}', [CartController::class, 'getCartItems']); // Obtener items del carrito de un cliente
 Route::delete('/cart_items/{cartItemId}', [CartController::class, 'removeFromCart']); // Eliminar item del carrito

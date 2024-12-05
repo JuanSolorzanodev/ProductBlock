@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('country_of_origin')->nullable(); // País de origen
             $table->boolean('warranty')->default(false);  // Garantía
             $table->integer('number_of_pieces')->default(1); // Número de piezas
+            $table->softDeletes();
             $table->timestamps();
     
         });

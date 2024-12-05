@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('product_id')->constrained('products')->onDelete('cascade');
             $table->string('image_path'); // Ruta de la imagen, podrías guardarla en el almacenamiento o en una URL
             $table->integer('top');
+            $table->softDeletes();
             $table->timestamps();
         });
     }
