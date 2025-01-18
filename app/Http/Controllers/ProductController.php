@@ -3,15 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Product;
-use App\Models\ProductImage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use App\Models\ProductImage;
+use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 
 class ProductController extends Controller
 {
+
     public function index(Request $request)
     {
         $query = $request->input('name');
@@ -106,7 +107,7 @@ class ProductController extends Controller
 
             $path = $image->store('products', 'public');
             $product->images()->create([
-                'image_path' => 'storage/' . $path, // Agregar automáticamente el prefijo
+                'image_path' => 'http://localhost:8000/storage/' . $path, // Agregar automáticamente el prefijo
                 'top' => $key + 1,
             ]);
         }
@@ -213,7 +214,53 @@ class ProductController extends Controller
         ], 200);
     }
     
-    
+    public function cleanUnusedImages()
+    {
+        // Obtén las rutas de las imágenes almacenadas en la tabla product_images
+        $storedImages = DB::table('product_images')->pluck('image_path')->toArray();
+
+        // Extrae solo los nombres de los archivos desde las rutas
+        $storedImageNames = array_map(function ($path) {
+            return basename($path);
+        }, $storedImages);
+    // Obtén todas las imágenes existentes en el directorio storage/app/public/products
+        $allImages = Storage::files('public/products');
+        // Obtener todos los archivos en el directorio 'products' dentro de 'storage/app/public'
+    $files = Storage::disk('public')->files('products');
+
+    // Si deseas solo los nombres de los archivos sin la ruta completa, puedes extraer solo los nombres
+    $imageNames = array_map(function ($file) {
+        return basename($file); // Devuelve solo el nombre del archivo sin la ruta
+    }, $files);
+
+        //Filtra las imágenes que no están en la base de datos
+        $unusedImages = array_filter($imageNames, function ($filePath) use ($storedImageNames) {
+           return !in_array(basename($filePath), $storedImageNames);
+        });
+
+        // Elimina las imágenes no utilizadas
+        foreach ($unusedImages as $imagePath) {
+            Storage::delete($imagePath);
+        }
+        // Recorremos el array de imágenes
+    foreach ($unusedImages as $key => $imageName) {
+        // Elimina la imagen en el directorio 'products' dentro de 'storage/app/public'
+        $imagePath = 'products/' . $imageName; // Ruta completa a la imagen
+
+        // Verifica si el archivo existe y luego lo elimina
+        if (Storage::disk('public')->exists($imagePath)) {
+            Storage::disk('public')->delete($imagePath);
+        }
+    }
+        return response()->json([
+            'message' => 'Unused images have been removed.',
+            'removed_images' => array_map('basename', $unusedImages),
+            'images' => $storedImages,
+            'image_path' => $storedImageNames,
+            'storage' => $imageNames,
+            'filtro' => $unusedImages
+        ]);
+    }
 
     // public function update(Request $request, $id)
     // {

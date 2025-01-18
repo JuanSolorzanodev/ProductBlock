@@ -33,6 +33,8 @@ Route::post('/products/{id}/images', [ProductController::class, 'updateImages'])
 
 Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 
+Route::delete('/clean-unused-images', [ProductController::class, 'cleanUnusedImages']);
+
 
 // Rutas adicionales para el carrito
 Route::get('/cart_items/{customerId}', [CartController::class, 'getCartItems']); // Obtener items del carrito de un cliente
