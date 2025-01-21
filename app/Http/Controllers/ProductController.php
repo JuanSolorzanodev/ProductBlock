@@ -8,7 +8,7 @@ use App\Models\ProductImage;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-
+use Cloudinary\Cloudinary;
 
 class ProductController extends Controller
 {
@@ -29,69 +29,74 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // Validar los datos del producto y las especificaciones
+    // Validar los datos del producto y las especificaciones
         $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'SKU' => 'required|string|max:255|unique:products,SKU',
-            'iva' => 'required|boolean',
-            'category_id' => 'required|exists:categories,id',
-            'packaging_type' => 'nullable|string|max:255',
-            'material' => 'nullable|string|max:255',
-            'usage_location' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'load_capacity' => 'nullable|string|max:255',
-            'country_of_origin' => 'nullable|string|max:255',
-            'warranty' => 'nullable|boolean',
-            'number_of_pieces' => 'nullable|integer|min:1',
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048', // Validar imágenes
-        ]);
+        'name' => 'required|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'SKU' => 'required|string|max:255|unique:products,SKU',
+        'iva' => 'required|boolean',
+        'category_id' => 'required|exists:categories,id',
+        'packaging_type' => 'nullable|string|max:255',
+        'material' => 'nullable|string|max:255',
+        'usage_location' => 'nullable|string|max:255',
+        'color' => 'nullable|string|max:255',
+        'load_capacity' => 'nullable|string|max:255',
+        'country_of_origin' => 'nullable|string|max:255',
+        'warranty' => 'nullable|boolean',
+        'number_of_pieces' => 'nullable|integer|min:1',
+        'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
 
-        // Crear el producto
-        $product = Product::create([
-            'name' => $request->input('name'),
-            'description' => $request->input('description'),
-            'price' => $request->input('price'),
-            'stock' => $request->input('stock'),
-            'SKU' => $request->input('SKU'),
-            'iva' => $request->input('iva'),
-            'category_id' => $request->input('category_id'),
-        ]);
+    // Crear el producto
+    $product = Product::create([
+        'name' => $request->input('name'),
+        'description' => $request->input('description'),
+        'price' => $request->input('price'),
+        'stock' => $request->input('stock'),
+        'SKU' => $request->input('SKU'),
+        'iva' => $request->input('iva'),
+        'category_id' => $request->input('category_id'),
+    ]);
 
-        // Crear las especificaciones del producto
-        $product->specifications()->create([
-            'packaging_type' => $request->input('packaging_type'),
-            'material' => $request->input('material'),
-            'usage_location' => $request->input('usage_location'),
-            'color' => $request->input('color'),
-            'load_capacity' => $request->input('load_capacity'),
-            'country_of_origin' => $request->input('country_of_origin'),
-            'warranty' => $request->input('warranty', false),
-            'number_of_pieces' => $request->input('number_of_pieces', 1),
-        ]);
+    // Crear las especificaciones del producto
+    $product->specifications()->create([
+    'packaging_type' => $request->input('packaging_type') ?? null,
+    'material' => $request->input('material') ?? null,
+    'usage_location' => $request->input('usage_location') ?? null,
+    'color' => $request->input('color') ?? null,
+    'load_capacity' => $request->input('load_capacity') ?? null,
+    'country_of_origin' => $request->input('country_of_origin') ?? null,
+    'warranty' => $request->input('warranty') ?? false,
+    'number_of_pieces' => $request->input('number_of_pieces') ?? 1,
+]);
 
-        // Subir imágenes (máximo 3)
-        if ($request->hasFile('images')) {
-            $images = $request->file('images');
-            foreach ($images as $key => $image) {
-                if ($key > 2) break; // Limitar a 3 imágenes
 
-                $path = $image->store('products', 'public');
-                $product->images()->create([
-                    'image_path' => 'http://localhost:8000/storage/' . $path, // Agrega automáticamente el prefijo
-                    'top' => $key + 1,
-                ]);
-            }
+    // Subir imágenes a Cloudinary y guardar las URLs
+    $uploadedImages = [];
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $key => $image) {
+            $uploadedFileUrl = \Cloudinary::upload($image->getRealPath(), [
+                'folder' => 'products/' . $product->id,
+            ])->getSecurePath();
+
+            // Guardar en la base de datos
+            $product->images()->create([
+                'image_path' => $uploadedFileUrl,
+                'top' => $key + 1,
+            ]);
+            $uploadedImages[] = $uploadedFileUrl;
         }
-
-        // Responder con el producto creado
-        return response()->json([
-            'message' => 'Producto creado con éxito',
-            'data' => $product->load('specifications', 'images'),
-        ], 201);
     }
+
+    // Responder con el producto creado
+    return response()->json([
+        'message' => 'Producto creado con éxito',
+        /* 'data' => $product->load('specifications', 'images'),
+        'images' => $uploadedImages, */
+    ], 201);
+}
 
     public function handleImages($product, $images)
     {

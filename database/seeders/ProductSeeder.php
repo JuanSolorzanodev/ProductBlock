@@ -20,8 +20,8 @@ class ProductSeeder extends Seeder
                 'iva' => true,
                 'category_id' => 1,
                 'images' => [
-                    ['image_path' => 'http://localhost:8000/storage/products/7lcBgippr9NNTeP5U1c6BSPVLn9xQIMywabnw4kO.jpg', 'top' => 1],
-                    ['image_path' => 'http://localhost:8000/storage/products/tAMcUUong0Nd358bnPXCNlFHy3khQZ4zkCGwVxPN.png', 'top' => 2],
+                    ['image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1737443905/Cemento_qzzmne.png', 'top' => 1],
+                    ['image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1737444269/cemnto_open_ocezqa.jpg', 'top' => 2],
                 ]
             ],
             [
@@ -33,8 +33,8 @@ class ProductSeeder extends Seeder
                 'iva' => true,
                 'category_id' => 2,
                 'images' => [
-                    ['image_path' => 'http://localhost:8000/storage/products/fyP85ORtYKizYa98o6MjzewJC2zZkjBSXaB9Rm0K.jpg', 'top' => 1],
-                    ['image_path' => 'http://localhost:8000/storage/products/SwlFKViYVura8bxT8e4QKSHZVZJYziyWMf8WKceG.png', 'top' => 2],
+                    ['image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1737443942/Pintura_blanca_mate_m8mzo2.jpg', 'top' => 1],
+                    ['image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1737444277/pared_pintada_yguykr.jpg', 'top' => 2],
                 ]
             ],
             [
@@ -46,7 +46,7 @@ class ProductSeeder extends Seeder
                 'iva' => false,
                 'category_id' => 3,
                 'images' => [
-                    ['image_path' => 'http://localhost:8000/storage/products/KqLSbGXxzAyxcrGhEJy0XG2VGerh6SL7dF9DYpUL.jpg', 'top' => 1],
+                    ['image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1737443959/Martillo_de_carpintero_w0q7pi.jpg', 'top' => 1],
                 ]
             ],
             // Añade más productos según necesites
