@@ -25,6 +25,7 @@ Route::post('/products/getByIds', [ProductController::class, 'getProductsCart'])
 Route::get('/products/in-stock', [ProductController::class, 'getInStockProducts']);
 Route::get('/products/{id}/stock', [ProductController::class, 'getStockById']);
 
+
 Route::post('/products', [ProductController::class, 'store']);
 
 Route::put('/products/{id}', [ProductController::class, 'update']);
@@ -32,6 +33,9 @@ Route::put('/products/{id}', [ProductController::class, 'update']);
 Route::post('/products/{id}/images', [ProductController::class, 'updateImages']);
 
 Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+Route::get('/products/{id}/details', [ProductController::class, 'getProductDetails']);
+
 
 Route::delete('/clean-unused-images', [ProductController::class, 'cleanUnusedImages']);
 
@@ -44,5 +48,5 @@ Route::put('/cart_items/{cartItemId}', [CartController::class, 'updateCartItem']
 // Ruta adicional para crear intención de pago
 Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent']);
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login']); 
 Route::post('/register', [AuthController::class, 'register']);

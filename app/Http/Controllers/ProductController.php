@@ -470,4 +470,23 @@ class ProductController extends Controller
             return response()->json(['stock' => 0]);
         }
     }
+
+    public function getProductDetails($id)
+{
+    // Validar que el producto exista
+    $product = Product::with(['category', 'specifications', 'images'])->find($id);
+
+    if (!$product) {
+        return response()->json([
+            'message' => 'Producto no encontrado'
+        ], 404);
+    }
+
+    // Retornar el producto con sus detalles
+    return response()->json([
+        'message' => 'Producto encontrado',
+        'data' => $product
+    ], 200);
+}
+
 }
