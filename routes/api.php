@@ -13,7 +13,16 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // Rutas para las API de recursos
-Route::apiResource('categories', CategoryController::class);
+// Route::apiResource('categories', CategoryController::class);
+Route::prefix('categories')->group(function () {
+    Route::get('/', [CategoryController::class, 'index']);
+    Route::get('/trashed', [CategoryController::class, 'trashed']); // Ver eliminados
+    Route::post('/', [CategoryController::class, 'store']);
+    Route::get('/{id}', [CategoryController::class, 'show']);
+    Route::put('/{id}', [CategoryController::class, 'update']);
+    Route::delete('/{id}', [CategoryController::class, 'destroy']);
+    Route::patch('/restore/{id}', [CategoryController::class, 'restore']); // Restaurar
+});
 Route::get('/products', [ProductController::class, 'getAllProducts']);
 Route::apiResource('customers', CustomerController::class);
 Route::apiResource('orders', OrderController::class);
