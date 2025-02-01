@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     CartController, CategoryController, CustomerController,
-    OrderController, PaymentController, ProductController, SupplierController,AuthController,CarruselController,UserController,
+    OrderController, PaymentController, ProductController, SupplierController,AuthController,CarruselController, RoleController, UserController,
 };
 
 // Ruta para obtener información del usuario autenticado
@@ -72,3 +72,5 @@ Route::post('/payments/intent', [PaymentController::class, 'createPaymentIntent'
 
 Route::post('/login', [AuthController::class, 'login']); 
 Route::post('/register', [AuthController::class, 'register']);
+
+Route::get('/roles', [RoleController::class, 'getRoles']);

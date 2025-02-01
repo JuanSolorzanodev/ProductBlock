@@ -4,16 +4,17 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Cart extends Model
 {
-    use HasFactory;
+    use HasFactory,SoftDeletes;
 
-    protected $fillable = ['customer_id'];
+    protected $fillable = ['user_id'];
 
-    public function customer()
+    public function user()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class);
     }
 
     public function cartItems()
