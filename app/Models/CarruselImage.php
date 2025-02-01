@@ -8,9 +8,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use CloudinaryLabs\CloudinaryLaravel\MediaAlly;
 
 
-class Image extends Model
+class CarruselImage extends Model
 {
     use HasFactory, SoftDeletes,MediaAlly;
-
-    protected $fillable = ['image_path'];
+    protected $fillable = [
+        'image_path',
+        'name',
+        'size',
+        'top',
+    ];
 }

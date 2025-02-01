@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
     CartController, CategoryController, CustomerController,
-    OrderController, PaymentController, ProductController, SupplierController,AuthController,ImageController,UserController,
+    OrderController, PaymentController, ProductController, SupplierController,AuthController,CarruselController,UserController,
 };
 
 // Ruta para obtener información del usuario autenticado
@@ -36,10 +36,9 @@ Route::get('/products/in-stock', [ProductController::class, 'getInStockProducts'
 Route::get('/products/{id}/stock', [ProductController::class, 'getStockById']);
 
 /*carrousel rutase */
-Route::get('/images', [ImageController::class, 'index']);
-Route::post('/images', [ImageController::class, 'store']);
-Route::delete('/images/{id}', [ImageController::class, 'destroy']);
-Route::patch('/images/{id}/restore', [ImageController::class, 'restore']);
+Route::get('/carrusel', [CarruselController::class, 'index']);
+Route::post('/carrusel', [CarruselController::class, 'store']);
+Route::delete('/carrusel/{id}', [CarruselController::class, 'destroy']);
 
 /* user rutes */
 Route::get('/users', [UserController::class, 'index']); // Obtener usuarios
@@ -50,8 +49,8 @@ Route::delete('/users/{id}/force', [UserController::class, 'forceDelete']); // E
 
 //
 Route::post('/products', [ProductController::class, 'store']);
-
-Route::put('/products/{id}', [ProductController::class, 'update']);
+Route::post('/uploadImage', [ProductController::class, 'uploadImage']);
+Route::post('/products/{id}', [ProductController::class, 'update']);
 
 Route::post('/products/{id}/images', [ProductController::class, 'updateImages']);
 

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Cloudinary\Cloudinary;
-
+use Cloudinary\Api\Admin\AdminApi;
 class ProductController extends Controller
 {
 
@@ -21,15 +21,14 @@ class ProductController extends Controller
         $products = Product::with('images')
             ->when($query, function ($queryBuilder) use ($query) {
                 return $queryBuilder->where('name', 'like', '%' . $query . '%');
-            })
-            ->get();
+            })->get();
 
         return response()->json(['data' => $products], 200);
     }
 
     public function store(Request $request)
     {
-    // Validar los datos del producto y las especificaciones
+        // Validar los datos del producto y las especificaciones
         $request->validate([
         'name' => 'required|string|max:255',
         'description' => 'nullable|string',
@@ -49,8 +48,8 @@ class ProductController extends Controller
         'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
     ]);
 
-    // Crear el producto
-    $product = Product::create([
+        // Crear el producto
+        $product = Product::create([
         'name' => $request->input('name'),
         'description' => $request->input('description'),
         'price' => $request->input('price'),
@@ -58,7 +57,7 @@ class ProductController extends Controller
         'SKU' => $request->input('SKU'),
         'iva' => $request->input('iva'),
         'category_id' => $request->input('category_id'),
-    ]);
+        ]);
 
     // Crear las especificaciones del producto
     $product->specifications()->create([
@@ -84,6 +83,8 @@ class ProductController extends Controller
             // Guardar en la base de datos
             $product->images()->create([
                 'image_path' => $uploadedFileUrl,
+                'name' => $image->getClientOriginalName(), // Obtener el nombre original
+                'size' => $image->getSize(), // Obtener el tamaño en bytes
                 'top' => $key + 1,
             ]);
             $uploadedImages[] = $uploadedFileUrl;
@@ -93,236 +94,186 @@ class ProductController extends Controller
     // Responder con el producto creado
     return response()->json([
         'message' => 'Producto creado con éxito',
-        /* 'data' => $product->load('specifications', 'images'),
-        'images' => $uploadedImages, */
+        'data' => $product->load('specifications', 'images'),
+        'images' => $uploadedImages,
     ], 201);
 }
+   
 
-    public function handleImages($product, $images)
-    {
-        // Eliminar imágenes existentes
-        foreach ($product->images as $image) {
-            Storage::disk('public')->delete(str_replace('storage/', '', $image->image_path));
-            $image->delete();
+public function update(Request $request, $id)
+{
+    // Validar los datos del producto y las especificaciones
+    $request->validate([
+        'name' => 'nullable|string|max:255',
+        'description' => 'nullable|string',
+        'price' => 'required|numeric|min:0',
+        'stock' => 'required|integer|min:0',
+        'SKU' => 'required|string|max:255|unique:products,SKU,' . $id,
+        'iva' => 'required|boolean',
+        'category_id' => 'required|exists:categories,id',
+        'packaging_type' => 'nullable|string|max:255',
+        'material' => 'nullable|string|max:255',
+        'usage_location' => 'nullable|string|max:255',
+        'color' => 'nullable|string|max:255',
+        'load_capacity' => 'nullable|string|max:255',
+        'country_of_origin' => 'nullable|string|max:255',
+        'warranty' => 'nullable|boolean',
+        'number_of_pieces' => 'nullable|integer|min:1',
+        'images.*.file' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Imagen nueva
+        'images.*.id' => 'nullable|integer',
+        'images.*.image_path' => 'nullable|url', // URL de imagen ya subida
+        'images.*.name' => 'nullable|string|max:255',
+        'images.*.size' => 'nullable|string|max:255',
+        'images.*.top' => 'nullable|integer',
+        'deletedids' => 'nullable|array', // Validar que deletedids sea un array
+        'deletedids.*' => 'nullable|string', // Validar que cada elemento del array sea un entero
+    ]);
+
+    $images = $request->input('images', []); // Datos de imágenes ya subidas
+    $uploadedFiles = $request->file('images'); // Archivos de imágenes subidas
+    $deletedIds = $request->input('deletedids', []);
+    $imageData = [];
+
+    // Buscar el producto a actualizar
+    $product = Product::findOrFail($id);
+
+    // Actualizar el producto
+    $product->update([
+        'name' => $request->input('name'),
+        'description' => $request->input('description'),
+        'price' => $request->input('price'),
+        'stock' => $request->input('stock'),
+        'SKU' => $request->input('SKU'),
+        'iva' => $request->input('iva'),
+        'category_id' => $request->input('category_id'),
+    ]);
+
+    // Actualizar las especificaciones del producto
+    $product->specifications()->updateOrCreate(
+        ['product_id' => $product->id],
+        [
+            'packaging_type' => $request->input('packaging_type') ?? null,
+            'material' => $request->input('material') ?? null,
+            'usage_location' => $request->input('usage_location') ?? null,
+            'color' => $request->input('color') ?? null,
+            'load_capacity' => $request->input('load_capacity') ?? null,
+            'country_of_origin' => $request->input('country_of_origin') ?? null,
+            'warranty' => $request->input('warranty') ?? false,
+            'number_of_pieces' => $request->input('number_of_pieces') ?? 1,
+        ]
+    );
+
+    // Manejar la eliminación de imágenes
+    foreach ($deletedIds as $deletedId) {
+        $image = ProductImage::find($deletedId);
+        if ($image) {
+            // Extraer el public_id de la URL de Cloudinary
+            $urlParts = explode('/', $image->image_path);
+            $fileName = end($urlParts); // "r8cq4adsfbkpnmv1tdxh.jpg"
+            $fileNameWithoutExtension = pathinfo($fileName, PATHINFO_FILENAME); // "r8cq4adsfbkpnmv1tdxh"
+            $publicId = 'products/' . $product->id . '/' . $fileNameWithoutExtension; // "products/4/r8cq4adsfbkpnmv1tdxh"
+
+            // Eliminar la imagen de Cloudinary usando AdminApi
+            try {
+                $adminApi = new AdminApi(); // Crear una instancia de AdminApi
+                $result = $adminApi->deleteAssets([$publicId], [
+                    "resource_type" => "image",
+                    "type" => "upload",
+                ]);
+
+                // Verificar si la eliminación en Cloudinary fue exitosa
+                if (isset($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted') {
+                    // Eliminar el registro de la base de datos
+                    $image->delete();
+                }
+            } catch (\Exception $e) {
+                // Manejar el error si la eliminación falla
+                Log::error('Failed to delete image from Cloudinary: ' . $e->getMessage());
+            }
         }
+    }
 
-        // Subir nuevas imágenes (máximo 3)
-        foreach ($images as $key => $image) {
-            if ($key > 2) break; // Limitar a 3 imágenes
+    // Manejar la actualización y creación de imágenes
+    foreach ($images as $index => $image) {
+        if (isset($image['id']) && isset($image['image_path']) && !isset($uploadedFiles[$index]['file'])) {
+            // Imagen existente, solo actualizar el campo 'top'
+            $productImage = ProductImage::find($image['id']);
+            if ($productImage) {
+                $productImage->update([
+                    'top' => $image['top'] ?? ($index + 1),
+                ]);
+            }
+        } elseif (isset($uploadedFiles[$index]['file'])) {
+            // Nueva imagen, subir a Cloudinary y crear en la base de datos
+            $file = $uploadedFiles[$index]['file'];
+            $uploadedFileUrl = \Cloudinary::upload($file->getRealPath(), [
+                'folder' => 'products/' . $product->id,
+            ])->getSecurePath();
 
-            $path = $image->store('products', 'public');
+            // Guardar en la base de datos
             $product->images()->create([
-                'image_path' => 'http://localhost:8000/storage/' . $path, // Agregar automáticamente el prefijo
-                'top' => $key + 1,
+                'image_path' => $uploadedFileUrl,
+                'name' => $file->getClientOriginalName(), // Obtener el nombre original
+                'size' => $file->getSize(), // Obtener el tamaño en bytes
+                'top' => $image['top'] ?? ($index + 1),
             ]);
         }
     }
 
+    // Responder con el producto actualizado
+    return response()->json([
+        'message' => 'Producto actualizado correctamente',
+        'data' => $product,
+        /* 'images' => $product->images, */
+        'Eliminados'=> $deletedIds,
+        /* 'busqueda para eliminar'=>$image,
+        'id prodcuto' => $product->id, */
+    ], 200);
+}
+public function destroy($id)
+{
+    // Buscar el producto por ID
+    $product = Product::findOrFail($id);
 
+    // Eliminar las imágenes del producto en Cloudinary y la base de datos
+    foreach ($product->images as $image) {
+        // Extraer el public_id de la URL de Cloudinary
+        $urlParts = explode('/', $image->image_path);
+        $fileName = end($urlParts); // "r8cq4adsfbkpnmv1tdxh.jpg"
+        $fileNameWithoutExtension = pathinfo($fileName, PATHINFO_FILENAME); // "r8cq4adsfbkpnmv1tdxh"
+        $publicId = 'products/' . $product->id . '/' . $fileNameWithoutExtension; // "products/4/r8cq4adsfbkpnmv1tdxh"
 
-    public function update(Request $request, $id)
-    {
-        // Validar los datos del producto y las especificaciones
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'SKU' => 'required|string|max:255|unique:products,SKU,' . $id,
-            'iva' => 'required|boolean',
-            'category_id' => 'required|exists:categories,id',
-            'packaging_type' => 'nullable|string|max:255',
-            'material' => 'nullable|string|max:255',
-            'usage_location' => 'nullable|string|max:255',
-            'color' => 'nullable|string|max:255',
-            'load_capacity' => 'nullable|string|max:255',
-            'country_of_origin' => 'nullable|string|max:255',
-            'warranty' => 'nullable|boolean',
-            'number_of_pieces' => 'nullable|integer|min:1',
-            'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+        // Eliminar la imagen de Cloudinary usando AdminApi
+        try {
+            $adminApi = new AdminApi(); // Crear una instancia de AdminApi
+            $result = $adminApi->deleteAssets([$publicId], [
+                "resource_type" => "image",
+                "type" => "upload",
+            ]);
 
-        // Encontrar el producto
-        $product = Product::findOrFail($id);
-
-        // Actualizar datos del producto
-        $product->update($request->only([
-            'name',
-            'description',
-            'price',
-            'stock',
-            'SKU',
-            'iva',
-            'category_id'
-        ]));
-
-        // Actualizar especificaciones
-        $product->specifications->update($request->only([
-            'packaging_type',
-            'material',
-            'usage_location',
-            'color',
-            'load_capacity',
-            'country_of_origin',
-            'warranty',
-            'number_of_pieces'
-        ]));
-
-        // Manejar imágenes si se envían
-        if ($request->hasFile('images')) {
-            $this->handleImages($product, $request->file('images'));
-        }
-
-        // Responder con el producto actualizado
-        return response()->json([
-            'message' => 'Producto actualizado con éxito',
-            'data' => $product->load('specifications', 'images'),
-        ], 200);
-    }
-
-
-    public function updateImages(Request $request, $id)
-    {
-        // Validar imágenes
-        $request->validate([
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
-
-        // Encontrar el producto
-        $product = Product::findOrFail($id);
-
-        // Manejar las imágenes
-        $this->handleImages($product, $request->file('images'));
-
-        return response()->json([
-            'message' => 'Imágenes actualizadas con éxito',
-            'data' => $product->images,
-        ], 200);
-    }
-
-
-    public function destroy($id)
-    {
-        // Encontrar el producto
-        $product = Product::findOrFail($id);
-    
-        // Eliminar las especificaciones y las imágenes de forma lógica
-        $product->specifications()->delete();
-        $product->images()->delete();
-    
-        // Eliminar el producto de forma lógica
-        $product->delete();
-    
-        return response()->json([
-            'message' => 'Producto eliminado de forma lógica, incluyendo especificaciones e imágenes relacionadas',
-            'data' => $product,
-        ], 200);
-    }
-    
-    public function cleanUnusedImages()
-    {
-        // Obtén las rutas de las imágenes almacenadas en la tabla product_images
-        $storedImages = DB::table('product_images')->pluck('image_path')->toArray();
-
-        // Extrae solo los nombres de los archivos desde las rutas
-        $storedImageNames = array_map(function ($path) {
-            return basename($path);
-        }, $storedImages);
-    // Obtén todas las imágenes existentes en el directorio storage/app/public/products
-        $allImages = Storage::files('public/products');
-        // Obtener todos los archivos en el directorio 'products' dentro de 'storage/app/public'
-    $files = Storage::disk('public')->files('products');
-
-    // Si deseas solo los nombres de los archivos sin la ruta completa, puedes extraer solo los nombres
-    $imageNames = array_map(function ($file) {
-        return basename($file); // Devuelve solo el nombre del archivo sin la ruta
-    }, $files);
-
-        //Filtra las imágenes que no están en la base de datos
-        $unusedImages = array_filter($imageNames, function ($filePath) use ($storedImageNames) {
-           return !in_array(basename($filePath), $storedImageNames);
-        });
-
-        // Elimina las imágenes no utilizadas
-        foreach ($unusedImages as $imagePath) {
-            Storage::delete($imagePath);
-        }
-        // Recorremos el array de imágenes
-    foreach ($unusedImages as $key => $imageName) {
-        // Elimina la imagen en el directorio 'products' dentro de 'storage/app/public'
-        $imagePath = 'products/' . $imageName; // Ruta completa a la imagen
-
-        // Verifica si el archivo existe y luego lo elimina
-        if (Storage::disk('public')->exists($imagePath)) {
-            Storage::disk('public')->delete($imagePath);
+            // Verificar si la eliminación en Cloudinary fue exitosa
+            if (isset($result['deleted'][$publicId]) && $result['deleted'][$publicId] === 'deleted') {
+                // Eliminar el registro de la base de datos
+                $image->delete();
+            }
+        } catch (\Exception $e) {
+            // Manejar el error si la eliminación falla
+            Log::error('Failed to delete image from Cloudinary: ' . $e->getMessage());
         }
     }
-        return response()->json([
-            'message' => 'Unused images have been removed.',
-            'removed_images' => array_map('basename', $unusedImages),
-            'images' => $storedImages,
-            'image_path' => $storedImageNames,
-            'storage' => $imageNames,
-            'filtro' => $unusedImages
-        ]);
-    }
 
-    // public function update(Request $request, $id)
-    // {
-    //     $validator = Validator::make($request->all(), [
-    //         'name' => 'sometimes|required|string|max:255',
-    //         'description' => 'sometimes|nullable|string',
-    //         'price' => 'sometimes|required|numeric|min:0',
-    //         'stock' => 'sometimes|required|integer|min:0',
-    //         'SKU' => 'sometimes|required|string|max:255|unique:products,SKU,' . $id,
-    //         'iva' => 'sometimes|required|boolean',
-    //         'category_id' => 'sometimes|required|exists:categories,id',
-    //         'images.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validación para las imágenes
-    //     ]);
+    // Eliminar las especificaciones del producto
+    $product->specifications()->delete();
 
-    //     if ($validator->fails()) {
-    //         return response()->json(['error' => $validator->errors()], 400);
-    //     }
+    // Eliminar el producto
+    $product->delete();
 
-    //     $product = Product::findOrFail($id);
-    //     $product->update($request->only(['name', 'description', 'price', 'stock', 'SKU', 'iva', 'category_id']));
+    // Responder con un mensaje de éxito
+    return response()->json([
+        'message' => 'Producto eliminado correctamente',
+    ], 200);
+}
 
-    //     // Manejo de imágenes (eliminar y agregar nuevas si se proporcionan)
-    //     if ($request->hasFile('images')) {
-    //         // Elimina imágenes existentes
-    //         foreach ($product->images as $image) {
-    //             Storage::disk('public')->delete($image->image_path);
-    //             $image->delete();
-    //         }
-
-    //         // Agrega las nuevas imágenes
-    //         foreach ($request->file('images') as $index => $image) {
-    //             $path = $image->store('images', 'public');
-    //             ProductImage::create([
-    //                 'product_id' => $product->id,
-    //                 'image_path' => $path,
-    //                 'top' => $index + 1
-    //             ]);
-    //         }
-    //     }
-
-    //     return response()->json(['message' => 'Product updated successfully', 'data' => $product->load('images')], 200);
-    // }
-
-    // public function destroy($id)
-    // {
-    //     $product = Product::findOrFail($id);
-
-    //     // Elimina imágenes asociadas
-    //     foreach ($product->images as $image) {
-    //         Storage::disk('public')->delete($image->image_path);
-    //         $image->delete();
-    //     }
-
-    //     $product->delete();
-
-    //     return response()->json(['message' => 'Product deleted successfully'], 200);
-    // }
     public function getProductsWithQuantities(Request $request)
     {
         // Validar que el input sea un array
