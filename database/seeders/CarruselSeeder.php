@@ -21,14 +21,14 @@ class CarruselSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-            [
+            /* [
                 'image_path' => 'https://res.cloudinary.com/dinpmwqyi/image/upload/v1738188082/carousel/r8cq4adsfbkpnmv1tdxh.jpg',
                 'name' => 'minita_azul_panoramico.jpg',
                 'size' => '4000',
                 'top' => 2,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ]
+            ] */
             // Agrega más imágenes aquí si lo deseas
         ]);
     }
