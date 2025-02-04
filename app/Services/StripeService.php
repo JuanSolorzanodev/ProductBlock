@@ -17,6 +17,7 @@ class StripeService
         return PaymentIntent::create([
             'amount' => $amount * 100, // convertir a centavos
             'currency' => 'usd',
+            'payment_method_types' => ['card'],
         ]);
     }
 }

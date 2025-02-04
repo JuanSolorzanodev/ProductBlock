@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 use App\Models\Order;
+use App\Models\OrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -15,7 +16,7 @@ class OrderController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'customer_id' => 'required|exists:customers,id',
+            'user_id' => 'required|exists:users,id',
             'total_amount' => 'required|numeric|min:0',
         ]);
 
@@ -23,8 +24,23 @@ class OrderController extends Controller
             return response()->json(['error' => $validator->errors()], 400);
         }
 
-        $order = Order::create($request->all());
-        return response()->json(['message' => 'Order created successfully', 'data' => $order], 201);
+        $order = Order::create([
+            'user_id' => $request->user_id,
+            'total_amount' => $request->total_amount,
+        ]);
+    
+        // Crear los order_items a partir del carrito
+        foreach ($request->items as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+                'subtotal' => $item['subtotal'],
+            ]);
+        }
+    
+        return response()->json(['message' => 'Order created successfully', 'order' => $order], 201);
     }
 
     public function show($id)

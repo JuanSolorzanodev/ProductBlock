@@ -3,8 +3,8 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
-    CartController, CategoryController, CustomerController,
-    OrderController, PaymentController, ProductController, SupplierController,AuthController,CarruselController, RoleController, UserController,
+    CartController, CategoryController, CustomerController,StripeController,
+    OrderController, PaymentController, ProductController, SupplierController,AuthController,CarruselController, RoleController, UserController,OrderItemController
 };
 
 // Ruta para obtener información del usuario autenticado
@@ -74,3 +74,21 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
 Route::get('/roles', [RoleController::class, 'getRoles']);
+
+Route::apiResource('order-items', OrderItemController::class);
+
+Route::post('/payments', [PaymentController::class, 'store']);
+Route::get('/payments/{id}', [PaymentController::class, 'show']);
+
+Route::post('/create-checkout-session', [StripeController::class, 'createCheckoutSession']);
+Route::get('/success', function() {
+    return view('success'); // Crea una vista de éxito
+});
+Route::get('/cancel', function() {
+    return view('cancel'); // Crea una vista de cancelación
+});
+
+
+Route::post('/create-payment-intent', [PaymentController::class, 'createPaymentIntent']);
+Route::post('/confirm-payment', [PaymentController::class, 'confirmPayment']);
+Route::post('/webhook', [PaymentController::class, 'webhook']);
